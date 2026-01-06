@@ -16,6 +16,20 @@ public class AdminController : ControllerBase
 
     // Additional admin-related endpoints can be added here
 
+
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers()
+    {
+        var users=await _context.Users.Select(u => new
+        {
+            u.Id,
+            u.Name,
+            u.Email,
+            u.Role
+        }).ToListAsync();
+        return Ok(users);
+    }
+
     [HttpGet("roles")]
     public async Task<IActionResult> GetRoles()
     {
