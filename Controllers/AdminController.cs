@@ -194,4 +194,20 @@ public class AdminController : ControllerBase
         return Ok(perms);
     }
 
+    //Project Section 
+
+    
+    [HttpGet("projects")]
+    public async Task<IActionResult> GetProjects()
+    {
+        var projects=await _context.Projects.Select(p => new
+        {
+            p.Id,
+            p.Name,
+            p.MentorId,
+            p.CreatedAt
+        }).ToListAsync();
+        return Ok(projects);
+    }
+
 }

@@ -12,6 +12,7 @@ namespace onboardingAPI.Data
         public DbSet<Section> Sections { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<Project> Projects {get;set;}
     
     }
 }
