@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using onboardingAPI.Data;
+using onboardingAPI.DTOs;
 using onboardingAPI.Models;
 
 [ApiController]
@@ -194,7 +195,7 @@ public class AdminController : ControllerBase
         return Ok(perms);
     }
 
-    //Project Section 
+    //Projects Section 
 
     
     [HttpGet("projects")]
@@ -210,4 +211,74 @@ public class AdminController : ControllerBase
         return Ok(projects);
     }
 
+    [HttpPost("projects")]
+    public async Task<IActionResult> CreateProject([FromBody] CreateProjectRequest request)
+    {
+       
+       if(!ModelState.IsValid)
+       {
+        return BadRequest(ModelState);
+       }
+       var mentor= await _context.Users.FindAsync(request.MentorId);
+
+       
+       if (mentor==null)
+       {
+        return BadRequest(new {message="Mentor user not found."});
+       }
+
+       var project=new Project
+       {
+           Name=request.Name,
+           MentorId=request.MentorId,
+           CreatedAt=DateTime.UtcNow
+       };
+
+       _context.Projects.Add(project);
+       await _context.SaveChangesAsync();
+
+       return Ok(project);
+    }
+    
+    [HttpGet("projects/{projectId}")]
+    public async Task<IActionResult> GetProjectCard(int projectId)
+
+
+    {
+        var project=await  _context.Projects
+        .Where(p=>p.Id==projectId)
+        .Select(p=>new{p.Id,
+          p.Name,
+          Mentor=_context.Users
+            .Where(u=>u.Id==p.MentorId)
+            .Select(u=>u.Name)
+            .FirstOrDefault(),
+
+         MembersCount=_context.ProjectMembers
+            .Count(pm=>pm.ProjectId==p.Id),
+
+         TechStack=_context.ProjectTechStack
+            .Where(pts=>pts.ProjectId==p.Id)
+            .Select(pts=>pts.Name)
+            .ToList(),
+
+          Modules=_context.ProjectModules
+            .Where(pm=>pm.ProjectId==p.Id)
+            .Select(pm=>pm.Name)
+            .ToList(),
+
+
+           CreatedAt=p.CreatedAt
+
+        }) .FirstOrDefaultAsync();     
+
+       
+        if(project==null)
+        {
+            return NotFound(new {message="Project not found."});
+        }
+
+
+        return Ok(project);
+    }
 }
