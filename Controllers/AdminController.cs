@@ -281,4 +281,77 @@ public class AdminController : ControllerBase
 
         return Ok(project);
     }
+
+
+    [HttpPost("projects/{projectId}/tech-stack")]
+    public async Task<IActionResult> AddTechStack(int projectId, [FromBody] AddTechStackRequest request)
+    {
+        
+        var projectExists=await _context.Projects.AnyAsync(p=>p.Id==projectId);
+        if(!projectExists)
+         return NotFound(new {message="Project not found."});
+
+        if(request.TechNames==null || !request.TechNames.Any())
+         return BadRequest(new {message="No tech stack names provided."});
+
+        var techItems=request.TechNames.Select(name=>new ProjectTechStack
+        {
+            ProjectId=projectId,
+            Name=name.Trim()
+        });
+
+        _context.ProjectTechStack.AddRange(techItems);
+        await _context.SaveChangesAsync();
+        return Ok(new{message="Tech stack added successfully.",count=request.TechNames.Count});
+    }
+
+
+    [HttpPost("projects/{projectId}/modules")]
+    public async Task<IActionResult> AddModules(int projectId, [FromBody] AddModulesRequest request)
+
+    {
+        var projectExists = await _context.Projects.AnyAsync(p => p.Id == projectId);
+        if (!projectExists)
+            return NotFound(new { message = "Project not found." });
+
+        if (request.ModulesNames == null || request.ModulesNames.Count == 0)
+            return BadRequest(new { message = "No module names provided." });
+
+        var moduleItems = request.ModulesNames.Select(name => new ProjectModule
+        {
+            ProjectId = projectId,
+            Name = name.Trim()
+        });
+
+        _context.ProjectModules.AddRange(moduleItems);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Modules added successfully.", count = request.ModulesNames.Count });
+    }
+
+
+   [HttpPost("projects/{projectId}/members")]
+   public async Task<IActionResult> AddMembers(int projectId, [FromBody] AddMembersRequest request)
+    {
+       var projectExists = await _context.Projects.AnyAsync(p => p.Id == projectId);
+        if (!projectExists)
+            return NotFound(new { message = "Project not found." });
+
+        // 2. Validate request
+        if (request.UserIds == null || request.UserIds.Count == 0)
+            return BadRequest(new { message = "No user ids provided." });
+
+        // 3. Create member mappings
+        var members = request.UserIds.Select(userId => new ProjectMember
+        {
+            ProjectId = projectId,
+            UserId = userId
+        });
+
+        // 4. Save
+        _context.ProjectMembers.AddRange(members);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Members added successfully.", count = request.UserIds.Count }); 
+    } 
 }
