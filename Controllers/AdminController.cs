@@ -357,7 +357,8 @@ public class AdminController : ControllerBase
         return Ok(new { message = "Members added successfully.", count = request.UserIds.Count }); 
     } 
 
-    #region Onbpoarding Templates
+    #region Onboarding Templates
+
     [HttpPost("onboarding/templates")]
     public async Task<IActionResult> CreateOnboardingTemplate([FromBody] CreateOnboardingTemplateRequest request)
     {
@@ -384,6 +385,83 @@ public class AdminController : ControllerBase
         await _context.SaveChangesAsync();  
         return Ok(template);
     }
+
+    [HttpPost("onboarding/templates/tasks/{templateId}")]
+    public async Task<IActionResult> AddTemplateTask(int templateId,[FromBody] CreateTemplateTaskRequest task){
+        var templateExists=await _context.OnboardingTemplates.AnyAsync(t=>t.Id==templateId);
+        if (!templateExists){
+            return NotFound(new{message="Onboarding template not found."});
+        }
+
+        if (string.IsNullOrWhiteSpace(task.Title)){
+            return BadRequest(new{message="Task title is required."});
+        }
+
+        var taskItem= new OnboardingTemplateTask
+        {
+            TemplateId=templateId,
+            Title=task.Title,
+            Description=task.Description,
+            IsRequired=task.IsRequired,
+            OrderIndex=task.OrderIndex
+        };
+
+        _context.OnboardingTemplateTasks.Add(taskItem);
+        await _context.SaveChangesAsync();
+        return Ok(taskItem);
+
+    }
+
+
+
+    [HttpPost("onboarding/assign")]
+    public async Task<IActionResult> AssignOnboardingTemplate([FromBody] AssignOnboardingRequest request){
+        var userExists=await _context.Users.AnyAsync(u=>u.Id==request.UserId);
+
+        if(!userExists){
+            return NotFound(new{message="User not found."});
+        }
+
+        //Validate Template
+        var template=await _context.OnboardingTemplates.FirstOrDefaultAsync(t=>t.Id==request.TemplateId);
+        if(template==null){
+            return NotFound(new{message="Onboarding template not found."});
+        }
+
+        var onboarding= new UserOnboarding
+        {
+            UserId=request.UserId,
+            TemplateId=request.TemplateId,
+            Status="IN_PROGRESS",
+            StartDate=DateTime.UtcNow
+        };
+        _context.UserOnboardings.Add(onboarding);
+        await _context.SaveChangesAsync();
+
+        // Copy template tasks → user tasks
+        var templateTasks = await _context.OnboardingTemplateTasks
+        .Where(t => t.TemplateId == request.TemplateId)
+        .OrderBy(t => t.OrderIndex)
+        .ToListAsync();
+
+        var userTasks = templateTasks.Select(t => new UserOnboardingTask
+        {
+            UserOnboardingId = onboarding.Id,
+            Title = t.Title,
+            Description = t.Description,
+            IsRequired = t.IsRequired,
+            Status = "PENDING"
+        }).ToList();
+        _context.UserOnboardingTasks.AddRange(userTasks);
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Onboarding started successfully",
+            onboardingId = onboarding.Id,
+            taskCount = templateTasks.Count
+        });
+        }
 
   #endregion
 

@@ -17,6 +17,9 @@ namespace onboardingAPI.Data
         public DbSet<ProjectTechStack> ProjectTechStack {get;set;}   
         public DbSet<ProjectMember> ProjectMembers {get;set;}
         public DbSet<OnboardingTemplate> OnboardingTemplates { get; set; }
+        public DbSet<OnboardingTemplateTask> OnboardingTemplateTasks { get; set; }
+        public DbSet<UserOnboarding> UserOnboardings { get; set; }
+        public DbSet<UserOnboardingTask> UserOnboardingTasks { get; set; }
     
-    }
+    } 
 }
