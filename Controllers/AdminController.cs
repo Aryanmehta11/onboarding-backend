@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using onboardingAPI.Data;
 using onboardingAPI.DTOs;
 using onboardingAPI.Models;
+
 
 [ApiController]
 [Route("api/admin")]
@@ -354,4 +356,35 @@ public class AdminController : ControllerBase
 
         return Ok(new { message = "Members added successfully.", count = request.UserIds.Count }); 
     } 
+
+    #region Onbpoarding Templates
+    [HttpPost("onboarding/templates")]
+    public async Task<IActionResult> CreateOnboardingTemplate([FromBody] CreateOnboardingTemplateRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RoleName))
+        {
+            return BadRequest(new{message="RoleName is required."});
+        }
+
+        var exists=await _context.OnboardingTemplates.AnyAsync(t=>t.RoleName.ToLower()==request.RoleName.ToLower());    
+
+        if(exists)  
+        {
+            return BadRequest(new{message="Onboarding template for this role already exists."});
+        }                   
+        
+        var template=new OnboardingTemplate
+        {
+            RoleName=request.RoleName,
+            Description=request.Description,
+            CreatedAt=DateTime.UtcNow
+        };
+
+        _context.OnboardingTemplates.Add(template);
+        await _context.SaveChangesAsync();  
+        return Ok(template);
+    }
+
+  #endregion
+
 }
