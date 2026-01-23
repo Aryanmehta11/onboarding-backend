@@ -26,7 +26,7 @@ namespace onboardingAPI.Services
             Project: {project}
             Tech Stack: {techStack}
 
-            Return output strictly as JSON array of task titles.
+            Return only a json array of strings. No markdown, no explanation.
             ";  
 
             var body= new
@@ -51,14 +51,27 @@ namespace onboardingAPI.Services
             var response =await httpClient.
             PostAsync($"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}", content);
 
+            if (!response.IsSuccessStatusCode)
+            {
+                var error= await response.Content.ReadAsStringAsync();
+                throw new Exception($"Gemini API request failed with status code {response.StatusCode}: {error}");
+            }
+
             var responseText=await response.Content.ReadAsStringAsync();
 
-            //Extract JSON array from response 
-            var start=responseText.IndexOf('[');
-            var end=responseText.LastIndexOf(']');  
-            var jsonArrayString=responseText.Substring(start, end - start +1);
+            using var doc=JsonDocument.Parse(responseText);
+            var text=doc
+            .RootElement
+            .GetProperty("candidates")[0]
+            .GetProperty("content")
+            .GetProperty("parts")[0]
+            .GetProperty("text") 
+            .GetString();
 
-            return JsonSerializer.Deserialize<List<string>>(jsonArrayString) ?? new List<string>();
+             if (string.IsNullOrWhiteSpace(text))
+                throw new Exception("Gemini returned empty response");
+
+            return JsonSerializer.Deserialize<List<string>>(text)!;
         }
         
     } 
