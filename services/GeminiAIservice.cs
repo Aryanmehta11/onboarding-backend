@@ -70,6 +70,17 @@ namespace onboardingAPI.Services
 
              if (string.IsNullOrWhiteSpace(text))
                 throw new Exception("Gemini returned empty response");
+            text=text.Trim();
+
+            text=text.Replace("```json", "")
+                     .Replace("```", "")
+                     .Trim();
+            var start=text.IndexOf('[');
+            var end=text.LastIndexOf(']');
+            if (start>=0 && end >= 0)
+            {
+                text=text.Substring(start,end-start+1);
+            }         
 
             return JsonSerializer.Deserialize<List<string>>(text)!;
         }
